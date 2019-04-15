@@ -3,7 +3,8 @@
 
 (defn negate [argument] #(- (argument %)))
 
-(defn operationWithMultipleArguments [f arguments] (fn [coll] (apply f (map #(% coll) arguments))))
+(defn operationWithMultipleArguments [f arguments] (fn [coll] (apply f
+                                                                     (map #(% coll) arguments))))
 (defn add [& arguments] (operationWithMultipleArguments + arguments))
 (defn subtract [& arguments] (operationWithMultipleArguments - arguments))
 (defn multiply [& arguments] (operationWithMultipleArguments * arguments))
