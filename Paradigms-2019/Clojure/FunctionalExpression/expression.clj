@@ -4,7 +4,7 @@
 (defn negate [argument] (comp - argument))
 
 (defn operationWithMultipleArguments [f arguments] (fn [coll] (apply f
-                                                                     (map #(% coll) arguments))))
+                                                                     ((apply juxt arguments) coll))))
 (defn add [& arguments] (operationWithMultipleArguments + arguments))
 (defn subtract [& arguments] (operationWithMultipleArguments - arguments))
 (defn multiply [& arguments] (operationWithMultipleArguments * arguments))
