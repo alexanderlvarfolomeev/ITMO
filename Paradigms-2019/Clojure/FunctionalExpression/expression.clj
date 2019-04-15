@@ -16,4 +16,4 @@
                                (number? expr) (constant expr)
                                (symbol? expr) (variable (str expr))
                                :else (apply (operations (first expr)) (map #(parseExpression %) (rest expr)))))
-(defn parseFunction (comp parseExpression read-string))
+(def parseFunction (comp parseExpression read-string))
