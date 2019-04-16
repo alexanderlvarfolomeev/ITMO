@@ -1,0 +1,12 @@
+package expression.parser;
+
+enum Token {
+    CONST, VARIABLE,
+    NEGATE,
+    HIGH, LOW,
+    ADD, SUBTRACT, MULTIPLY, DIVIDE,
+    OPENING_BRACKET, CLOSING_BRACKET,
+    MODULUS, SQUARE_ROOT,
+    MINIMUM, MAXIMUM,
+    BEGIN, END
+}
