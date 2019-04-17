@@ -185,35 +185,18 @@
         * Запускать c аргументом `easy`
 
 
-Запуск тестов
- * Для запуска тестов используется [GraalVM](https://www.graalvm.org/)
- * Для запуска тестов можно использовать скрипты [TestJS.cmd](javascript/TestJS.cmd) и [TestJS.sh](javascript/TestJS.sh)
-    * Репозиторий должен быть скачан целиком.
-    * Скрипты должны находиться в каталоге `javascript` (их нельзя перемещать, но можно вызывать из других каталогов).
- * Для самостоятельно запуска из консоли необходимо использовать командную строку вида:
-    `java -ea -XX:+UnlockExperimentalVMOptions -XX:+EnableJVMCI --module-path=<js>/graal --upgrade-module-path=<js>/graal/compiler.jar --class-path <js> jstest.functional.FunctionalExpressionTest {hard|easy}`, где
-    * `-ea` – включение проверок времени исполнения;
-    * `-XX:+UnlockExperimentalVMOptions` и `-XX:+EnableJVMCI` – опции необходимые для запуска Graal;
-    * `--module-path=<js>/graal` путь к модулям Graal (здесь и далее `<js>` путь к каталогу `javascript` этого репозитория);
-    * `--upgrade-module-path=<js>/graal/compiler.jar` путь к JIT-компилятору Graal;
-    * `--class-path <js>` путь к откомпилированным тестам;
-    * {`hard`|`easy`} указание тестируемой модификации.
- * При запуске из IDE, обычно не требуется указывать `--class-path`, так как он формируется автоматически.
-   Остальные опции все равно необходимо указать.
- * Troubleshooting
-    * `Error occurred during initialization of boot layer java.lang.module.FindException: Module org.graalvm.truffle not found, required by jdk.internal.vm.compiler` – неверно указан `--module-path`;
-    * `ScriptEngineManager providers.next(): javax.script.ScriptEngineFactory: Provider com.oracle.truffle.js.scriptengine.GraalJSEngineFactory could not be instantiated` – неверно указан `--upgrade-module-path` или не указана опция `-XX:+EnableJVMCI`;
-    * `Graal.js not found` – неверно указаны `--module-path` и `--upgrade-module-path`
-    * `Error: Could not find or load main class jstest.functional.FunctionalExpressionTest` – неверно указан `--class-path`;
-    * `Error: Could not find or load main class <other class>` – неверно указано полное имя класса теста;
-    * `Exception in thread "main" java.lang.AssertionError: You should enable assertions by running 'java -ea jstest.functional.FunctionalExpressionTest'` – не указана опция `-ea`;
-    * `Error: VM option 'EnableJVMCI' is experimental and must be enabled via -XX:+UnlockExperimentalVMOptions.` – не указана опция `-XX:+UnlockExperimentalVMOptions`;
-    * `First argument should be one of: "easy", "hard", found: XXX` – неверно указана сложность;
-    * `Exception in thread "main" jstest.EngineException: Script 'functionalExpression.js' not found` – в текущем каталоге отсутствует решение (`functionalExpression.js`)
-
-
 ### Домашнее задание 3. Вычисление в различных типах
 ----
+
+1. Добавьте в программу вычисляющую выражения поддержку различных типов.
+	* Первым аргументом командной строки программа должна принимать указание на тип, в котором будут производится вычисления:
+	*Опция	Тип*
+	-i	int
+	-d	double
+	-bi	BigInteger
+	* Реализация не должна содержать непроверяемых преобразований типов.
+	* Реализация не должна использовать аннотацию @SuppressWarnings.
+2. При выполнении задания следует обратить внимание на легкость добавления новых типов и операциий.
 
 Модификации
  * *Базовая*
@@ -383,8 +366,6 @@ HTML-символы, такие как `<`, `>` и `&`.
 Модификация
  * *Mark*
     * Добавьте поддержку `~выделения цветом~`: `<mark>выделения цветом</mark>`
-    * [Исходный код тестов](java/md2html/Md2HtmlMarkTest.java)
-    * [Откомпилированные тесты](artifacts/md2html/Md2HtmlMarkTest.jar)
 
 
 ### Домашнее задание 1. Обработка ошибок (Exceptions)
@@ -423,14 +404,12 @@ HTML-символы, такие как `<`, `>` и `&`.
         [TripleExpression](java/expression/TripleExpression.java)
     * Нельзя использовать типы `long` и `double`
     * Нельзя использовать методы классов `Math` и `StrictMath`
-    * [Исходный код тестов](java/expression/exceptions/ExceptionsTest.java)
  * *HighLow*
     * Дополнительно реализовать унарные операции:
         * `high` — значение, у которого оставлен только самый старший
           установленный бит `high -4` равно `Integer.MIN_VALUE`;
         * `low` — значение, у которого оставлен только самый младший
           установленный бит `low 18` равно `2`.
-    * [Исходный код тестов](java/expression/exceptions/ExceptionsHighLowTest.java)
 
 ## Осенний семестр
 
@@ -469,18 +448,15 @@ HTML-символы, такие как `<`, `>` и `&`.
         [TripleExpression](java/expression/TripleExpression.java)
     * Нельзя использовать типы `long` и `double`
     * Нельзя использовать методы классов `Math` и `StrictMath`
-    * [Исходный код тестов](java/expression/exceptions/ExceptionsTest.java)
  * *Простая*
     * Дополнительно реализовать унарные операции:
         * `abs` — модуль числа, `abs -5` равно 5;
         * `sqrt` — квадратный корень, `sqrt 24` равно 4.
-    * [Исходный код тестов](java/expression/exceptions/ExceptionsAbsSqrtTest.java)
  * *Сложная*
     * Реализовать операции простой модификации.
     * Дополнительно реализовать бинарные операции (минимальный приоритет):
         * `min` — минимум, `2 min 3` равно 2;
         * `max` — максимум, `2 max 3` равно 3.
-    * [Исходный код тестов](java/expression/exceptions/ExceptionsMinMaxTest.java)
 
 
 ### Домашнее задание 11. Разбор выражений (Exception Parser)
@@ -503,12 +479,10 @@ HTML-символы, такие как `<`, `>` и `&`.
         [Parser](java/expression/parser/Parser.java)
     * Результат разбора должен реализовывать интерфейс
         [TripleExpression](java/expression/TripleExpression.java)
-    * [Исходный код тестов](java/expression/parser/ParserTest.java)
  * *Простая*
     * Дополнительно реализовать бинарные операции:
         * `<<` — сдвиг влево, минимальный приоритет (`1 << 5 + 3` равно `1 << (5 + 3)` равно 256);
         * `>>` — сдвиг вправо, минимальный приоритет (`1024 >> 5 + 3` равно `1024 >> (5 + 3)` равно 4);
-    * [Исходный код тестов](java/expression/parser/ParserShiftsTest.java)
  * *Сложная*
     * Дополнительно реализовать унарные операции (приоритет как у унарного минуса):
         * Дополнительно реализовать бинарные операции:
@@ -517,8 +491,6 @@ HTML-символы, такие как `<`, `>` и `&`.
         * `|` — побитное ИЛИ, приоритет меньше чем у `^` (`6 | 1 + 2` равно `6 | (1 + 2)` равно 7);
         * `~` — побитное отрицание, `~-5` равно 4;
         * `count` — число установленных битов, `count -5` равно 31.
-    * [Исходный код тестов](java/expression/parser/ParserBitwiseTest.java)
-    * [Исходный код тестов](java/expression/parser/ParserNotCountTest.java)
 
 ### Домашнее задание 10. Вычисление выражений (Expressions)
 ----
@@ -544,10 +516,8 @@ HTML-символы, такие как `<`, `>` и `&`.
 Модификации
  * *Базовая*
     * Реализовать интерфейс [Expression](java/expression/Expression.java)
-    * [Исходный код тестов](java/expression/ExpressionTest.java)
  * *Простая*
     * Реализовать интерфейс [DoubleExpression](java/expression/DoubleExpression.java)
-    * [Исходный код тестов](java/expression/DoubleExpressionTest.java)
 
 
 ### Домашнее задание 9. Очередь на связном списке (Linked/Array Queue)
@@ -558,9 +528,6 @@ HTML-символы, такие как `<`, `>` и `&`.
 3. Выделите общие части классов LinkedQueue и ArrayQueue в базовый класс AbstractQueue.
 
 Модификации
- * *Базовая*
-    * [Исходный код тестов](java/queue/QueueTest.java)
-    * [Откомпилированные тесты](artifacts/queue/QueueTest.jar)
  * *Простая*
     * Добавить в интерфейс очереди и реализовать метод
       `toArray`, возвращающий массив,
@@ -568,8 +535,6 @@ HTML-символы, такие как `<`, `>` и `&`.
       от головы к хвосту
     * Исходная очередь должна оставаться неизменной
     * Дублирования кода быть не должно
-    * [Исходный код тестов](java/queue/QueueToArrayTest.java)
-    * [Откомпилированные тесты](artifacts/queue/QueueToArrayTest.jar)
  * *Сложная*
     * Добавить в интерфейс очереди и реализовать методы
         * `filter(predicate)` – создать очередь, содержащую элементы, удовлетворяющие
@@ -603,23 +568,17 @@ HTML-символы, такие как `<`, `>` и `&`.
 Модификации
  * *Базовая*
     * Классы должны находиться в пакете `queue`
-    * [Исходный код тестов](java/queue/ArrayQueueTest.java)
-    * [Откомпилированные тесты](artifacts/queue/ArrayQueueTest.jar)
  * *Простая*
     * Реализовать метод `toArray`, возвращающий массив,
       содержащий элементы, лежащие в очереди в порядке
       от головы к хвосту.
     * Исходная очередь должна остаться неизменной
     * Дублирования кода быть не должно
-    * [Исходный код тестов](java/queue/ArrayQueueToArrayTest.java)
-    * [Откомпилированные тесты](artifacts/queue/ArrayQueueToArrayTest.jar)
  * *Сложная*
     * Реализовать методы
         * `push` – добавить элемент в начало очереди
         * `peek` – вернуть последний элемент в очереди
         * `remove` – вернуть и удалить последний элемент из очереди
-    * [Исходный код тестов](java/queue/ArrayQueueDequeTest.java)
-    * [Откомпилированные тесты](artifacts/queue/ArrayQueueDequeTest.jar)
 
 
 ### Домашнее задание 7. Бинарный поиск (Binary Search)
@@ -637,15 +596,11 @@ HTML-символы, такие как `<`, `>` и `&`.
 Модификации
  * *Базовая*
     * Класс `BinarySearch` должен находиться в пакете `search`
-    * [Исходный код тестов](java/search/BinarySearchTest.java)
-    * [Откомпилированные тесты](artifacts/search/BinarySearchTest.jar)
  * *Простая*
     * Если в массиве `a` отсутствует элемент, равный `x`, то требуется
       вывести индекс вставки в формате, определенном в
       [`Arrays.binarySearch`](http://docs.oracle.com/javase/8/docs/api/java/util/Arrays.html#binarySearch-int:A-int-).
     * Класс должен иметь имя `BinarySearchMissing`
-    * [Исходный код тестов](java/search/BinarySearchMissingTest.java)
-    * [Откомпилированные тесты](artifacts/search/BinarySearchMissingTest.jar)
 
 ### Домашнее задание 6. Подсчет слов++ (WordStat++)
 ----
@@ -656,8 +611,6 @@ HTML-символы, такие как `<`, `>` и `&`.
     * Вместо номеров вхождений во всем файле надо указывать
       `<номер строки>:<номер в строке>`
     * Класс должен иметь имя `WordStatLineIndex`
-    * [Исходный код тестов](java/wordStat/WordStatLineIndexTest.java)
-    * [Откомпилированные тесты](artifacts/wordStat/WordStatLineIndexTest.jar)
 
 
 
@@ -720,8 +673,6 @@ HTML-символы, такие как `<`, `>` и `&`.
     * Рассмотрим входные данные как (не полностью определенную) матрицу,
       вместо каждого числа выведите сумму чисел в его столбце и строке.
     * Класс должен иметь имя `ReverseSum`
-    * [Исходный код тестов](java/reverse/ReverseSumFastTest.java)
-    * [Откомпилированные тесты](artifacts/reverse/ReverseSumFastTest.jar)
 
 
 1. Реализуйте свой аналог класса `Scanner`. Разработайте класс Reverse, читающий числа из стандартного входа, и выводящий их на стандартный вывод в обратном порядке.
@@ -735,8 +686,6 @@ HTML-символы, такие как `<`, `>` и `&`.
  * *Words*
     * В выходном файле слова должны быть упорядочены в лексикографическом порядке
     * Класс должен иметь имя `WordStatWords`
-    * [Исходный код тестов](java/wordStat/WordStatWordsTest.java)
-    * [Откомпилированные тесты](artifacts/wordStat/WordStatWordsTest.jar)
 
 1. Разработайте класс `WordStatInput`, который будет подсчитывать статистику встречаемости слов во входном файле.
 2. Словом называется неперывная последовательность букв, апострофов и тире (Unicode category Punctuation, Dash). Для подсчета статистики, слова приводятся к нижнему регистру.
@@ -792,15 +741,11 @@ HTML-символы, такие как `<`, `>` и `&`.
       Нулю соответствует буква `a`, единице – `b` и так далее
     * Ввод регистронезависим
     * Класс должен иметь имя `SumAbcFile`
-    * [Исходный код тестов](java/sum/SumAbcFileTest.java)
-    * [Откомпилированные тесты](artifacts/sum/SumAbcFileTest.jar)
  * *Hex*
     * На вход подаются десятичные и шестнадцатеричные числа
     * Шестнадцатеричные числа имеют префикс `0x`
     * Ввод регистронезависим
     * Класс должен иметь имя `SumHexFile`
-    * [Исходный код тестов](java/sum/SumHexFileTest.java)
-    * [Откомпилированные тесты](artifacts/sum/SumHexFileTest.jar)
 
 1. Разработайте класс `SumFile`, записывающий сумму чисел из входного файла в выходной файл.
 2. Числа во входном файле разделены переводами строк и/или пробельными символами.
@@ -834,8 +779,6 @@ HTML-символы, такие как `<`, `>` и `&`.
     * Рассмотрим входные данные как (не полностью определенную) матрицу,
       вместо каждого числа выведите максимум из чисел в его столбце и строке.
     * Класс должен иметь имя `ReverseMax`
-    * [Исходный код тестов](java/reverse/ReverseMaxTest.java)
-    * [Откомпилированные тесты](artifacts/reverse/ReverseMaxTest.jar)
 
 
 
@@ -869,8 +812,6 @@ HTML-символы, такие как `<`, `>` и `&`.
     * Входные данные помещаются в тип [BigInteger](https://docs.oracle.com/javase/8/docs/api/java/math/BigInteger.html)
     * Класс должен иметь имя `SumBigInteger`
     * Числа имеют вид `[знак]цифры`
-    * [Исходный код тестов](java/sum/SumBigIntegerDigitTest.java)
-    * [Откомпилированные тесты](artifacts/sum/SumBigIntegerDigitTest.jar)
 
 
 1. Разработайте класс `Sum`, который при запуске из командной строки будет складывать переданные в качестве аргументов целые числа и выводить их сумму на консоль.
