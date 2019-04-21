@@ -24,7 +24,7 @@ public:
     board() : height(), width(), space(), manhattan_result() {};
 
     explicit board(const std::vector<std::vector<int>> &state) : state(state), height(state.size()),
-                                                                 width(height == 0 ? 0 : state[0].size()){
+                                                                 width(height == 0 ? 0 : state[0].size()) {
         for (int i = 0; i < height; ++i) {
             for (int j = 0; j < width; ++j) {
                 if (state[i][j] == height * width) {
@@ -35,12 +35,12 @@ public:
         manhattan_result = manhattan_precalc();
     }
 
-    board(size_t height, size_t width) : height(height), width(width){
+    board(size_t height, size_t width) : height(height), width(width) {
         generate_state(height, width, state, space);
         manhattan_result = manhattan_precalc();
     }
 
-    board(const board &b) : height(b.size().first), width(b.size().second){
+    board(const board &b) : height(b.size().first), width(b.size().second) {
         state = b.get_state();
         space = b.space;
         manhattan_result = b.manhattan_result;
@@ -230,6 +230,35 @@ public:
     }
 };
 
+class path_iterator : public std::iterator<std::input_iterator_tag, const board> {
+
+    friend class solver;
+    std::list<board, std::allocator<board>>::const_iterator ptr;
+
+
+public:
+    explicit path_iterator(std::list<board, std::allocator<board>>::const_iterator iterator) : ptr(iterator) {}
+    bool operator==(path_iterator const& it) const{
+        return ptr == it.ptr;
+    }
+    bool operator!=(path_iterator const& it) const{
+        return ptr != it.ptr;
+    }
+
+    path_iterator::reference operator*() const{
+        return *ptr;
+    }
+
+    std::list<board, std::allocator<board>>::const_iterator operator->() const{
+        return ptr;
+    }
+
+    path_iterator operator++() {
+        ptr++;
+        return *this;
+    }
+};
+
 class solver {
     bool solvable;
 
@@ -272,8 +301,8 @@ class solver {
 public:
     std::list<board> path;
 
-    size_t size() {
-        return path.size();
+    size_t moves() {
+        return path.size() - 1;
     }
 
     explicit solver(const board &b) {
@@ -318,6 +347,17 @@ public:
             g_score.erase(current);
         }
     }
+
+    solver(solver &other) = default;
+
+    path_iterator begin() const {
+        return path_iterator(path.cbegin());
+    }
+
+    path_iterator end() const {
+        return path_iterator(path.cend());
+    }
+
 };
 
 int main() {
@@ -326,10 +366,10 @@ int main() {
                       {6, 9, 7}});
     board b2 = board({{1, 3, 4},
                       {6, 2, 5}});
-    board b3 = board({{8,  3,  4,  13},
-                      {12, 1,  5,  15},
-                      {2,  16, 7,  11},
-                      {6,  14, 10, 9}});
+    board b3 = board({{14, 11, 9,  12},
+                      {15, 10, 13, 8},
+                      {6,  7,  5,  1},
+                      {3,  2,  4,  16}});
     board b4 = board({{8,  3,  4, 6},
                       {11, 1,  5, 10},
                       {2,  12, 7, 9}});
@@ -341,9 +381,9 @@ int main() {
     board b7 = board({{8,  3,  14, 12, 7},
                       {2,  11, 5,  10, 6},
                       {13, 1,  15, 4,  9},
-                      {17, 24,  18, 16,  20},
-                      {21, 19,  23, 25,  22}});
-    board b(1, 4);
+                      {17, 24, 18, 16, 20},
+                      {21, 19, 23, 25, 22}});
+    board b(6, 6);
     solver s = solver(b7);
     /*
     std::cout << b << '\n' << '(' << b.size().first << ':' << b.size().second << ')' << ' '
@@ -351,9 +391,9 @@ int main() {
               << (b.is_solvable() ? "solvable" : "not solvable") << "\n\n";
     */
     std::cout << '\n';
-    for (const auto &i : s.path) {
+    for (const auto &i : s) {
         std::cout << i << '\n';
     }
-    std::cout << s.size();
+    std::cout << s.moves();
     return 0;
 }
