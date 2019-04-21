@@ -7,8 +7,6 @@
 #include <ctime>
 #include <set>
 #include <map>
-#include <queue>
-#include <deque>
 
 size_t random(unsigned int n) {
     return std::time(nullptr) % (n + 1);
@@ -233,23 +231,26 @@ public:
 class path_iterator : public std::iterator<std::input_iterator_tag, const board> {
 
     friend class solver;
+
     std::list<board, std::allocator<board>>::const_iterator ptr;
 
 
 public:
     explicit path_iterator(std::list<board, std::allocator<board>>::const_iterator iterator) : ptr(iterator) {}
-    bool operator==(path_iterator const& it) const{
+
+    bool operator==(path_iterator const &it) const {
         return ptr == it.ptr;
     }
-    bool operator!=(path_iterator const& it) const{
+
+    bool operator!=(path_iterator const &it) const {
         return ptr != it.ptr;
     }
 
-    path_iterator::reference operator*() const{
+    path_iterator::reference operator*() const {
         return *ptr;
     }
 
-    std::list<board, std::allocator<board>>::const_iterator operator->() const{
+    std::list<board, std::allocator<board>>::const_iterator operator->() const {
         return ptr;
     }
 
@@ -353,7 +354,7 @@ public:
     path_iterator begin() const {
         return path_iterator(path.cbegin());
     }
-
+    
     path_iterator end() const {
         return path_iterator(path.cend());
     }
