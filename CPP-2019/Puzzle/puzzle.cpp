@@ -8,21 +8,23 @@
 #include <set>
 #include <map>
 
-size_t random(unsigned int n) {
-    return std::time(nullptr) % (n + 1);
+unsigned char random(unsigned char n) {
+    return static_cast<unsigned char>(std::time(nullptr) % (n + 1));
 }
 
 class board {
-    std::vector<std::vector<int>> state;
-    size_t height;
-    size_t width;
+    std::vector<std::vector<unsigned char>> state;
+    unsigned char height;
+    unsigned char width;
     unsigned int manhattan_result;
-    std::pair<size_t, size_t> space;
+    std::pair<unsigned char, unsigned char> space;
 public:
     board() : height(), width(), space(), manhattan_result() {};
 
-    explicit board(const std::vector<std::vector<int>> &state) : state(state), height(state.size()),
-                                                                 width(height == 0 ? 0 : state[0].size()) {
+    explicit board(const std::vector<std::vector<unsigned char>> &state) :
+            state(state),
+            height(static_cast<unsigned char>(state.size())),
+            width(static_cast<unsigned char>(height == 0 ? 0 : state[0].size())) {
         for (int i = 0; i < height; ++i) {
             for (int j = 0; j < width; ++j) {
                 if (state[i][j] == height * width) {
@@ -33,7 +35,7 @@ public:
         manhattan_result = manhattan_precalc();
     }
 
-    board(size_t height, size_t width) : height(height), width(width) {
+    board(unsigned char height, unsigned char width) : height(height), width(width) {
         generate_state(height, width, state, space);
         manhattan_result = manhattan_precalc();
     }
@@ -44,13 +46,14 @@ public:
         manhattan_result = b.manhattan_result;
     }
 
-    static void generate_state(const size_t height, const size_t width, std::vector<std::vector<int>> &state,
-                               std::pair<size_t, size_t> &space) {
+    static void generate_state(const unsigned char height, const unsigned char width,
+                               std::vector<std::vector<unsigned char>> &state,
+                               std::pair<unsigned char, unsigned char> &space) {
 
-        std::vector<int> permutation(height * width);
+        std::vector<unsigned char> permutation(height * width);
         std::iota(permutation.begin(), permutation.end(), 1);
         for (int i = permutation.size() - 1; i >= 0; --i) {
-            int j = random(static_cast<unsigned int>(i));
+            unsigned char j = random(static_cast<unsigned char>(i));
             std::swap(permutation[i], permutation[j]);
         }
         for (int i = 0; i < height; ++i) {
@@ -64,26 +67,26 @@ public:
         }
     }
 
-    const std::pair<size_t, size_t> get_space() const {
+    const std::pair<unsigned char, unsigned char> get_space() const {
         return space;
     }
 
-    std::vector<std::vector<int>> get_state() const {
+    const std::vector<std::vector<unsigned char>> &get_state() const {
         return state;
     }
 
-    bool is_space(size_t i, size_t j) const {
+    bool is_space(unsigned char i, unsigned char j) const {
         return space == std::make_pair(i, j);
     }
 
-    std::pair<unsigned int, unsigned int> size() const {
+    std::pair<unsigned char, unsigned char> size() const {
         return {height, width};
     }
 
     unsigned int hamming() const {
         unsigned int result = 0;
-        for (size_t i = 0; i < height; ++i) {
-            for (size_t j = 0; j < width; ++j) {
+        for (unsigned char i = 0; i < height; ++i) {
+            for (unsigned char j = 0; j < width; ++j) {
                 if (state[i][j] != i * width + j + 1 && !is_space(i, j)) {
                     result++;
                 }
@@ -94,14 +97,14 @@ public:
 
     unsigned int manhattan_precalc() const {
         unsigned int result = 0;
-        for (auto i = 0; i < height; ++i) {
-            for (auto j = 0; j < width; ++j) {
+        for (unsigned char i = 0; i < height; ++i) {
+            for (unsigned char j = 0; j < width; ++j) {
                 if (state[i][j] != i * width + j + 1) {
-                    if (is_space(static_cast<size_t>(i), static_cast<size_t>(j))) {
+                    if (is_space(i, j)) {
                         continue;
                     }
-                    result += std::abs(i - (state[i][j] - 1) / static_cast<int>(width)) +
-                              std::abs(j - (state[i][j] - 1) % static_cast<int>(width));
+                    result += std::abs(i - (state[i][j] - 1) / width) +
+                              std::abs(j - (state[i][j] - 1) % width);
                 }
             }
         }
@@ -122,8 +125,8 @@ public:
         }
         if (height == 1) {
             auto max = is_space(0, 0) && width > 1 ? 1 : 0;
-            for (int i = max + 1; i < width; ++i) {
-                if (is_space(0, static_cast<size_t>(i))) {
+            for (auto i = static_cast<unsigned char>(max + 1); i < width; ++i) {
+                if (is_space(0, i)) {
                     continue;
                 }
                 if (state[0][max] > state[0][i]) {
@@ -134,9 +137,9 @@ public:
             return true;
         }
         unsigned int result = 0;
-        std::vector<int> count = std::vector(height * width - 1, 0);
-        for (size_t i = 0; i < height; ++i) {
-            for (size_t j = 0; j < width; ++j) {
+        std::vector<unsigned char> count = std::vector(height * width - 1, static_cast<unsigned char>(0));
+        for (unsigned char i = 0; i < height; ++i) {
+            for (unsigned char j = 0; j < width; ++j) {
                 if (is_space(i, j)) {
                     result += i + 1;
                     continue;
@@ -168,11 +171,8 @@ public:
     }
 
     bool operator<(const board &other) const {
-        if (this->manhattan() < other.manhattan()) {
-            return true;
-        }
-        if (this->manhattan() > other.manhattan()) {
-            return false;
+        if (this->manhattan() != other.manhattan()) {
+            return this->manhattan() < other.manhattan();
         }
         if (height != other.height || width != other.width) {
             return false;
@@ -196,7 +196,7 @@ public:
 
     board &operator=(const board &other) = default;
 
-    std::vector<int> &operator[](int n) {
+    const std::vector<unsigned char> &operator[](int n) {
         return state[n];
     }
 
@@ -303,7 +303,7 @@ public:
     std::list<board> path;
 
     size_t moves() {
-        return path.size() - 1;
+        return !path.empty() ? path.size() - 1 : 0;
     }
 
     explicit solver(const board &b) {
@@ -335,7 +335,7 @@ public:
                     continue;
                 }
                 int score = g_score.find(current)->second + 1;
-                //std::cout << score << ' ';
+                std::cout << score << ' ';
                 if (opened.find(neighbor) == opened.end()) {
                     opened.insert(neighbor);
                 } else if (score >= g_score.find(neighbor)->second) {
@@ -354,7 +354,7 @@ public:
     path_iterator begin() const {
         return path_iterator(path.cbegin());
     }
-    
+
     path_iterator end() const {
         return path_iterator(path.cend());
     }
@@ -384,8 +384,8 @@ int main() {
                       {13, 1,  15, 4,  9},
                       {17, 24, 18, 16, 20},
                       {21, 19, 23, 25, 22}});
-    board b(6, 6);
-    solver s = solver(b7);
+    board b(4, 4);
+    solver s = solver(b);
     /*
     std::cout << b << '\n' << '(' << b.size().first << ':' << b.size().second << ')' << ' '
               << b.hamming() << ' ' << b.manhattan() << ' '
