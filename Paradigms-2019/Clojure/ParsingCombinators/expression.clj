@@ -6,14 +6,17 @@
 
 (declare Variable Constant Negate Square Sqrt Sinh Cosh Add Subtract Multiply Divide)
 
-(defmulti evaluate (fn [exp _] (class exp)))
 (defmulti toString class)
 (defmulti toStringSuffix class)
+(defmulti toStringInfix class)
+(defmulti evaluate (fn [exp _] (class exp)))
 (defmulti diff (fn [exp _] (class exp)))
 
 (defmethod toString Var [exp]
   (.-variable exp))
 (defmethod toStringSuffix Var [exp]
+  (.-variable exp))
+(defmethod toStringInfix Var [exp]
   (.-variable exp))
 (defmethod evaluate Var [exp vars]
   (vars (.-variable exp)))
@@ -23,9 +26,11 @@
     (Constant 0)))
 
 (defmethod toString ConstOp [exp]
-  (str (format "%.0f.0" (.-value exp))))                    ;;TODO f != java.lang.Long
+  (str (format "%.0f.0" (.-value exp))))
 (defmethod toStringSuffix ConstOp [exp]
-  (str (format "%.0f.0" (.-value exp))))                    ;;TODO f != java.lang.Long
+  (str (format "%.0f.0" (.-value exp))))
+(defmethod toStringInfix ConstOp [exp]
+  (str (format "%.0f.0" (.-value exp))))
 (defmethod evaluate ConstOp [exp _]
   (.-value exp))
 (defmethod diff ConstOp [_ _] (Constant 0))
@@ -33,33 +38,38 @@
 (defmethod toString UnaryOperation [exp]
   (str "(" (.-name exp) " " (toString (.-argument exp)) ")"))
 (defmethod toStringSuffix UnaryOperation [exp]
-  (str "(" (toString (.-argument exp)) " " (.-name exp) ")"))
+  (str "(" (toStringSuffix (.-argument exp)) " " (.-name exp) ")"))
+(defmethod toStringInfix UnaryOperation [exp]
+  (str (.-name exp) "(" (toStringInfix (.-argument exp)) ")"))
 (defmethod evaluate UnaryOperation [exp vars]
   ((.-operation exp) (evaluate (.-argument exp) vars)))
 (defmethod diff UnaryOperation [exp var]
   ((.-dif exp) (.-argument exp) var))
 
 (defmethod toString DivideOp [exp] (str "(/" (reduce #(str %1 " " (toString %2)) "" (.-arguments exp)) ")"))
-(defmethod toStringSuffix DivideOp [exp] (str "(" (reduce #(str %1 (toString %2) " ") "" (.-arguments exp)) "\\)"))
+(defmethod toStringSuffix DivideOp [exp] (str "(" (reduce #(str %1 (toStringSuffix %2) " ") "" (.-arguments exp)) "/)"))
+(defmethod toStringInfix DivideOp [exp] (str "(" (reduce #(str %1 "/" (toStringInfix %2)) (toStringInfix (first (.-arguments exp))) (rest (.-arguments exp))) ")"))
 (defmethod evaluate DivideOp [exp vars]
   (reduce #(/ (double %1) (double %2))
           (map #(evaluate % vars) (.-arguments exp))))
 (defmethod diff DivideOp [exp var]
   (let [d (rest (.-arguments exp))]
-  (Divide
-    (Subtract
-      (Multiply (diff (first (.-arguments exp))
-                      var)
-                (apply Multiply d))
-      (Multiply (first (.-arguments exp))
-                (diff (apply Multiply d)
-                      var)))
-    (apply Multiply (into d d)))))
+    (Divide
+      (Subtract
+        (Multiply (diff (first (.-arguments exp))
+                        var)
+                  (apply Multiply d))
+        (Multiply (first (.-arguments exp))
+                  (diff (apply Multiply d)
+                        var)))
+      (apply Multiply (into d d)))))
 
 (defmethod toString MultipleArgumentsOperation [exp]
   (str "(" (.-name exp) (reduce #(str %1 " " (toString %2)) "" (.-arguments exp)) ")"))
 (defmethod toStringSuffix MultipleArgumentsOperation [exp]
-  (str "(" (reduce #(str %1 (toString %2) " ") "" (.-arguments exp)) (.-name exp) ")"))
+  (str "(" (reduce #(str %1 (toStringSuffix %2) " ") "" (.-arguments exp)) (.-name exp) ")"))
+(defmethod toStringInfix MultipleArgumentsOperation [exp]
+  (str "(" (reduce #(str %1 "" (.-name exp) "" (toStringInfix %2)) (toStringInfix (first (.-arguments exp))) (rest (.-arguments exp))) ")"))
 (defmethod evaluate MultipleArgumentsOperation [exp vars]
   (case (count (.-arguments exp))
     0 ((.-operation exp))
@@ -126,33 +136,6 @@
 
 (def parseObject (comp parseExpression read-string))
 
-
-(def argsCount {"+" 2, "-" 2, "*" 2, "/" 2, "negate" 1, "square" 1, "sqrt" 1, "sinh" 1, "cosh" 1})
-(def operationRank {"+" 1, "-" 1, "*" 2, "/" 2, "negate" 3, "square" 3, "sqrt" 3, "sinh" 3, "cosh" 3})
-
-(defn fold [stack rank]
-  (if (or (empty? (second stack)) (< (operationRank (last (second stack))) rank))
-    stack
-    (fold [(vec (conj (vec (drop-last (argsCount (last (second stack)))
-                                      (first stack)))
-                      (apply (operations (symbol (last (second stack)))) (take-last (argsCount (last (second stack)))
-                                                                                    (first stack)))))
-           (vec (drop-last 1 (second stack)))] rank)))
-
-(defn parseInfix [stack token]
-  (cond
-    (or (= token "x") (= token "y") (= token "z")) [(vec (conj (first stack) (Variable token))) (second stack)]
-    (not= (operationRank token) nil) [(first (fold stack (operationRank token))) (vec (conj
-                                                                                        (second
-                                                                                          (fold stack
-                                                                                                (operationRank token)))
-                                                                                        token))]
-    :else [(vec (conj (first stack) (Constant (Double/parseDouble token)))) (second stack)]))
-
-(defn parseObjectInfix [expr]
-  (let [tokens (vec (.split expr " "))]
-  (first (first (fold (reduce parseInfix [[] []] tokens) 0)))))
-
 (defn -return [value tail] {:value value :tail tail})
 (def -valid? boolean)
 (def -value :value)
@@ -166,94 +149,79 @@
   (run! (fn [input] (printf "    %-10s %s\n" input (_show (parser input)))) inputs))
 
 (defn _empty [value] (partial -return value))
-;(tabulate (_empty nil) ["" "~"])
-
 (defn _char [p]
   (fn [[c & cs]]
     (if (and c (p c)) (-return c cs))))
-;(tabulate (_char #{\a \b \c}) ["ax" "by" "" "a" "x" "xa"])
-
 (defn _map [f]
   (fn [result]
     (if (-valid? result)
       (-return (f (-value result)) (-tail result)))))
-;(tabulate (comp (_map clojure.string/upper-case) (_char #{\a \b \c})) ["a" "a~" "b" "b~" "" "x" "x~"])
-
 (defn _combine [f a b]
   (fn [str]
     (let [ar ((force a) str)]
       (if (-valid? ar)
         ((_map (partial f (-value ar)))
           ((force b) (-tail ar)))))))
-;(tabulate (_combine str (_char #{\a \b}) (_char #{\x})) ["ax" "ax~" "bx" "bx~" "axx" "" "a" "x" "xa"])
-
 (defn _either [a b]
   (fn [str]
     (let [ar ((force a) str)]
       (if (-valid? ar) ar ((force b) str)))))
-;(tabulate (_either (_char #{\a}) (_char #{\b})) ["ax" "ax~" "bx" "bx~" "" "a" "x" "xa"])
-
 (defn _parser [p]
   (fn [input]
     (-value ((_combine (fn [v _] v) p (_char #{\u0000})) (str input \u0000)))))
-;(mapv (_parser (_combine str (_char #{\a \b}) (_char #{\x}))) ["ax" "ax~" "bx" "bx~" "" "a" "x" "xa"])
 
 (defn +char [chars] (_char (set chars)))
-;(tabulate (+char "abc") ["a" "a~" "b" "b~" "" "x" "x~"])
-
 (defn +char-not [chars] (_char (comp not (set chars))))
-;(tabulate (+char-not "abc") ["a" "a~" "b" "b~" "" "x" "x~"])
-
 (defn +map [f parser] (comp (_map f) parser))
-;(tabulate (+map clojure.string/upper-case (+char "abc")) ["a" "a~" "b" "b~" "" "x" "x~"])
-
 (def +parser _parser)
-
 (def +ignore (partial +map (constantly 'ignore)))
-;(tabulate (+ignore (+char "abc")) ["a" "a~" "b" "b~" "" "x" "x~"])
 
 (defn iconj [coll value]
   (if (= value 'ignore) coll (conj coll value)))
 (defn +seq [& ps]
   (reduce (partial _combine iconj) (_empty []) ps))
-;(tabulate (+seq (+char "abc") (+ignore (+char "xyz")) (+char "ABC")) ["axA~" "axA" "aXA~"])
-
 (defn +seqf [f & ps] (+map (partial apply f) (apply +seq ps)))
-;(tabulate (+seqf str (+char "abc") (+ignore (+char "xyz")) (+char "ABC")) ["axA~" "axA" "aXA~"])
-
 (defn +seqn [n & ps] (apply +seqf (fn [& vs] (nth vs n)) ps))
-;(tabulate (+seqn 1 (+char "abc") (+ignore (+char "xyz")) (+char "ABC")) ["axA~" "axA" "aXA~"])
 
 (defn +or [p & ps]
   (reduce (partial _either) p ps))
-;(tabulate (+or (+char "a") (+char "b") (+char "c")) ["a" "a~" "b" "b~" "" "x" "x~"])
-
 (defn +opt [p]
   (+or p (_empty nil)))
-;(tabulate (+opt (+char "a")) ["a" "a~" "aa" "aa~" "" "~"])
-
 (defn +star [p]
   (letfn [(rec [] (+or (+seqf cons p (delay (rec))) (_empty ())))] (rec)))
-;(tabulate (+star (+char "a")) ["a" "a~" "aa" "aa~" "" "~"])
-
 (defn +plus [p] (+seqf cons p (+star p)))
-;(tabulate (+plus (+char "a")) ["a" "a~" "aa" "aa~" "" "~"])
-
 (defn +str [p] (+map (partial apply str) p))
-;(tabulate (+str (+star (+char "a"))) ["a" "a~" "aa" "aa~" "" "~"])
 
-(def parserObjectSuffix
-  (let
-    [*all-chars (mapv char (range 0 128))
-     *digit (+char (apply str (filter #(Character/isDigit %) *all-chars)))
-     *number (+map read-string (+str (+plus *digit)))       ;;works?
-     spaces (apply str (filter #(or (Character/isWhitespace %) (= \, %)) *all-chars))
-     *space (+char spaces)
-     *symbol (+map symbol (+str (+seqf cons (+char-not (str spaces \( \) "1234567890")) (+star (+char-not (str spaces \( \)))))))
-     *ws (+ignore (+star *space))]
-    (letfn [(*seq [begin p end]
-              (+seqn 1 (+char begin) (+opt (+seqf cons *ws p (+star (+seqn 0 *ws p)))) *ws (+char end)))
-            (*list [] (+map #(cons (last %) (drop-last %)) (*seq "(" (delay (*value)) ")")))
-            (*value [] (+or *number *symbol (*list)))]      ;;TODO *symbol
-      (+parser (+seqn 0 *ws (*value) *ws)))))
+(declare *value)
+(def *all-chars (mapv char (range 1 128)))
+(def *digit (+char (apply str (filter #(Character/isDigit %) *all-chars))))
+(def *number (+map read-string (+str (+seqf #(into (vec (cons %1 %2)) (vec (cons %3 %4))) (+opt (+char "+-")) (+plus *digit) (+opt (+char ".")) (+opt (+plus *digit))))))
+(def *spaces (apply str (filter #(or (Character/isWhitespace %) (= \, %)) *all-chars)))
+(def *space (+char *spaces))
+(def *symbol (+map symbol (+str (+or (+map list (+char "+-/*")) (+seqf cons (+char-not (str *spaces \u0000 "()+-/*.1234567890")) (+star (+char-not (str *spaces "()+-/*." \u0000))))))))
+(def *ws (+ignore (+star *space)))
+(defn *seq [begin p end]
+  (+seqn 1 (+char begin) (+opt (+seqf cons *ws p (+star (+seqn 0 *ws p)))) *ws (+char end)))
+
+(defn *list [] (+map #(cons (last %) (drop-last %)) (*seq "(" (delay (*value)) ")")))
+(defn *value [] (+or *number *symbol (*list)))
+
+(def parserObjectSuffix (+parser (+seqn 0 *ws (*value) *ws)))
 (defn parseObjectSuffix [str] (parseExpression (parserObjectSuffix str)))
+
+(declare *valueInfix)
+(defn *symbolNotExcept [symbols] (fn [input] (if (not (symbols (-value (*symbol input)))) (*symbol input))))
+(defn *symbolExcept [symbols] (fn [input] (if (symbols (-value (*symbol input))) (*symbol input))))
+(def *addsubSymbol (*symbolExcept #{'+ '-}))
+(def *divmulSymbol (*symbolExcept #{'* '/}))
+(def *funcSymbol (*symbolNotExcept #{'+ '- '* '/ 'x 'y 'z}))
+(defn *listInfix [] (+seqn 1 (+char "(") *ws (delay (*valueInfix)) *ws (+char ")")))
+(defn *func [] (+map #(list (first %) (second %)) (+seq *funcSymbol *ws (+or (delay (*listInfix)) (delay (*func)) (delay *number) (delay *symbol)))))
+(defn *divmul [] (+seqf #(list %2 %1 %3) (+or (delay (*listInfix)) (delay (*func)) (delay *number) (delay *symbol)) *ws *divmulSymbol *ws (+or (delay (*listInfix)) (delay (*divmul)) (delay (*func)) (delay *number) (delay *symbol))))
+(defn *addsub [] (+seqf #(list %2 %1 %3) (+or (delay (*listInfix)) (delay (*divmul)) (delay (*func)) (delay *number) (delay *symbol)) *ws *addsubSymbol *ws (delay (*valueInfix))))
+(defn *valueInfix [] (+or (delay (*addsub)) (delay (*divmul)) (delay (*listInfix)) (delay (*func)) *number *symbol))
+
+(def parserObjectInfix (+parser (+seqn 0 *ws (*valueInfix) *ws)))
+(defn parseObjectInfix [str] (parseExpression (parserObjectInfix str)))
+;(parseObjectInfix "(((((1593679847.0/z)/(570989464.0+1272395980.0))+(((((-644909577.0*((2024521279.0+-234058106.0)*(-1269041561.0-z)))-(z*-754046356.0))/-895682433.0)*(-438348423.0*-639233385.0))*(x+-785998201.0)))-(((y-1212840712.0)*((1243790670.0-y)/(z+x)))*(((y/-702851723.0)/((z+y)-(x+(x*x))))-(((y*x)+((z/x)-2031729930.0))-((-758725495.0*-1422095942.0)+(((z/(z/x))*z)/(((-31705420.0/437847727.0)-1723082594.0)+(-1521284728.0+z))))))))/y)")
+;(parseObjectInfix "(((x/154980250.0)/z)*((((z-(y/y))+z)+((2113032698.0/((970258039.0/1431974462.0)*(z-(y*1020101132.0))))+(((((x/y)*-1126121668.0)*((y+1002458521.0)+(y/z)))/((z*(-564643323.0--171581894.0))*(537280958.0*(1395906942.0--1048914734.0))))/(x+z))))-(-1314204084.0*1730643717.0)))")
