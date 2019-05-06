@@ -19,9 +19,9 @@
 (defmethod toStringInfix Var [exp]
   (.-variable exp))
 (defmethod evaluate Var [exp vars]
-  (vars (.-variable exp)))
+  ((comp vars clojure.string/lower-case str) (nth (.-variable exp) 0)))
 (defmethod diff Var [exp var]
-  (if (= var (.-variable exp))
+  (if (= var ((comp clojure.string/lower-case str) (nth (.-variable exp) 0)))
     (Constant 1)
     (Constant 0)))
 
