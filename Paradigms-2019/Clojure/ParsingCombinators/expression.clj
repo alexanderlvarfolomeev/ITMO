@@ -48,7 +48,7 @@
 
 (defmethod toString DivideOp [exp] (str "(/" (reduce #(str %1 " " (toString %2)) "" (.-arguments exp)) ")"))
 (defmethod toStringSuffix DivideOp [exp] (str "(" (reduce #(str %1 (toStringSuffix %2) " ") "" (.-arguments exp)) "/)"))
-(defmethod toStringInfix DivideOp [exp] (str "(" (reduce #(str %1 "/" (toStringInfix %2)) (toStringInfix (first (.-arguments exp))) (rest (.-arguments exp))) ")"))
+(defmethod toStringInfix DivideOp [exp] (str "(" (reduce #(str %1 " / " (toStringInfix %2)) (toStringInfix (first (.-arguments exp))) (rest (.-arguments exp))) ")"))
 (defmethod evaluate DivideOp [exp vars]
   (reduce #(/ (double %1) (double %2))
           (map #(evaluate % vars) (.-arguments exp))))
@@ -69,7 +69,7 @@
 (defmethod toStringSuffix MultipleArgumentsOperation [exp]
   (str "(" (reduce #(str %1 (toStringSuffix %2) " ") "" (.-arguments exp)) (.-name exp) ")"))
 (defmethod toStringInfix MultipleArgumentsOperation [exp]
-  (str "(" (reduce #(str %1 "" (.-name exp) "" (toStringInfix %2)) (toStringInfix (first (.-arguments exp))) (rest (.-arguments exp))) ")"))
+  (str "(" (reduce #(str %1 " " (.-name exp) " " (toStringInfix %2)) (toStringInfix (first (.-arguments exp))) (rest (.-arguments exp))) ")"))
 (defmethod evaluate MultipleArgumentsOperation [exp vars]
   (case (count (.-arguments exp))
     0 ((.-operation exp))
@@ -125,9 +125,36 @@
                                                                   (diff (apply Multiply
                                                                                (rest args))
                                                                         var)))))))
+(defn And [& arguments]
+  (MultipleArgumentsOperation.
+    "&"
+    #(Double/longBitsToDouble (bit-and (Double/doubleToLongBits %1) (Double/doubleToLongBits %2)))
+    arguments #()))
+(defn Or [& arguments]
+  (MultipleArgumentsOperation.
+    "|"
+    #(Double/longBitsToDouble (bit-or (Double/doubleToLongBits %1) (Double/doubleToLongBits %2)))
+    arguments #()))
+(defn Xor [& arguments]
+  (MultipleArgumentsOperation.
+    "^"
+    #(Double/longBitsToDouble (bit-xor (Double/doubleToLongBits %1) (Double/doubleToLongBits %2)))
+    arguments #()))
+
+(defn Pow [& arguments]
+  (MultipleArgumentsOperation.
+    "**"
+    #(Math/pow %1 %2)
+    arguments #()))
+(defn Log [& arguments]
+  (MultipleArgumentsOperation.
+    "//"
+    #(/ (Math/log (Math/abs %2)) (Math/log (Math/abs %1)))
+    arguments #()))
 
 (def operations {'+      Add, '- Subtract, '* Multiply, '/ Divide,
-                 'negate Negate, 'square Square, 'sqrt Sqrt, 'sinh Sinh, 'cosh Cosh})
+                 'negate Negate, 'square Square, 'sqrt Sqrt, 'sinh Sinh, 'cosh Cosh
+                 '&      And, '| Or, (symbol "^") Xor, '** Pow, (symbol "//") Log})
 
 (defn parseExpression [expr] (cond
                                (number? expr) (Constant expr)
@@ -211,24 +238,28 @@
 
 (declare *valueInfix)
 (defn *multipleArguments [p sign] (+map (partial reduce #(list (first %2) %1 (second %2))) (+seqf cons *ws p (+star (+seq *ws sign *ws p)) *ws)))
-;(defn *symbolNotExcept [symbols] (fn [input] (if (not (symbols (-value (*symbol input)))) (*symbol input))))
-;(defn *symbolExcept [symbols] (fn [input] (if (symbols (-value (*symbol input))) (*symbol input))))
+
 (def *variable (+map symbol (+str (+plus (+char "xyzXYZ")))))
-(def *op (+map symbol (+str (+plus (+or (+map list (+char "+-")) (+plus (+char "/*")))))))
+
 (def *addsubSymbol (+map symbol (+str (+map list (+char "+-")))))
 (def *divmulSymbol (+map symbol (+str (+plus (+char "/*")))))
-;(def *funcSymbol (*symbolNotExcept #{'+ '- '* '/ 'x 'y 'z}))
-(def *funcSymbol (+map symbol (+str (+seqf cons (+char-not (str *spaces \u0000 "xyzXYZ+-/*().1234567890")) (+star (+char-not (str *spaces "() \u0000")))))))
+(def *andSymbol (+map symbol (+str (+plus (+char "&")))))
+(def *orSymbol (+map symbol (+str (+plus (+char "|")))))
+(def *xorSymbol (+map symbol (+str (+plus (+char "^")))))
+(def *powlogSymbol (+map symbol (+str (+or (+seq (+char "/") (+char "/")) (+seq (+char "*") (+char "*"))))))
+
+(def *funcSymbol (+map symbol (+str (+seqf cons (+char-not (str *spaces \u0000 "xyzXYZ+-/*&|^().1234567890")) (+star (+char-not (str *spaces "() \u0000")))))))
 (defn *listInfix [] (+seqn 1 (+char "(") *ws (delay (*valueInfix)) *ws (+char ")")))
 (defn *func [] (+map #(list (first %) (second %)) (+seq *funcSymbol *ws (+or (delay (*listInfix)) (delay (*func)) (delay *number) (delay *variable)))))
-;(defn *divmul [] (+seqf #(list %2 %1 %3) (+or (delay (*listInfix)) (delay (*func)) (delay *number) (delay *variable)) *ws *divmulSymbol *ws (+or (delay (*listInfix)) (delay (*divmul)) (delay (*func)) (delay *number) (delay *variable))))
-(defn *divmul [] (*multipleArguments (+or (delay (*listInfix)) (delay (*func)) (delay *number) (delay *variable)) *divmulSymbol))
-(defn *addsub [] (*multipleArguments (+or (delay (*divmul)) (delay (*listInfix)) (delay (*func)) *number *variable) *addsubSymbol))
-(defn *valueInfix [] (+or (delay (*addsub)) (delay (*divmul)) (delay (*listInfix)) (delay (*func)) *number *variable))
-;(defn *valueInfixPartial [] (+or (delay (*divmul)) (delay (*listInfix)) (delay (*func)) *number *variable))
+
+(defn *powlog [] (*multipleArguments (+or (delay (*listInfix)) (delay (*func)) (delay *number) (delay *variable)) *divmulSymbol))
+
+(defn *divmul [] (*multipleArguments (+or (delay (*powlog)) (delay (*listInfix)) (delay (*func)) (delay *number) (delay *variable)) *divmulSymbol))
+(defn *addsub [] (*multipleArguments (+or (delay (*divmul)) (delay (*powlog)) (delay (*listInfix)) (delay (*func)) *number *variable) *addsubSymbol))
+(defn *and [] (*multipleArguments (+or (delay (*addsub)) (delay (*divmul)) (delay (*powlog)) (delay (*listInfix)) (delay (*func)) *number *variable) *andSymbol))
+(defn *or [] (*multipleArguments (+or (delay (*and)) (delay (*addsub)) (delay (*divmul)) (delay (*powlog)) (delay (*listInfix)) (delay (*func)) *number *variable) *orSymbol))
+(defn *xor [] (*multipleArguments (+or (delay (*or)) (delay (*and)) (delay (*addsub)) (delay (*divmul)) (delay (*powlog)) (delay (*listInfix)) (delay (*func)) *number *variable) *xorSymbol))
+(defn *valueInfix [] (+or (delay (*xor)) (delay (*or)) (delay (*and)) (delay (*addsub)) (delay (*divmul)) (delay (*powlog)) (delay (*listInfix)) (delay (*func)) *number *variable))
 
 (def parserObjectInfix (+parser (+seqn 0 *ws (*valueInfix) *ws)))
 (defn parseObjectInfix [str] (parseExpression (parserObjectInfix str)))
-(parserObjectInfix " x / x / x")
-;(parseObjectInfix "(((((1593679847.0/z)/(570989464.0+1272395980.0))+(((((-644909577.0*((2024521279.0+-234058106.0)*(-1269041561.0-z)))-(z*-754046356.0))/-895682433.0)*(-438348423.0*-639233385.0))*(x+-785998201.0)))-(((y-1212840712.0)*((1243790670.0-y)/(z+x)))*(((y/-702851723.0)/((z+y)-(x+(x*x))))-(((y*x)+((z/x)-2031729930.0))-((-758725495.0*-1422095942.0)+(((z/(z/x))*z)/(((-31705420.0/437847727.0)-1723082594.0)+(-1521284728.0+z))))))))/y)")
-;(parseObjectInfix "(((x/154980250.0)/z)*((((z-(y/y))+z)+((2113032698.0/((970258039.0/1431974462.0)*(z-(y*1020101132.0))))+(((((x/y)*-1126121668.0)*((y+1002458521.0)+(y/z)))/((z*(-564643323.0--171581894.0))*(537280958.0*(1395906942.0--1048914734.0))))/(x+z))))-(-1314204084.0*1730643717.0)))")
