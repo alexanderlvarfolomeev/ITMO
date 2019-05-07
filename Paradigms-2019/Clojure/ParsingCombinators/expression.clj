@@ -70,7 +70,7 @@
     (+map (fn [s] (reduce #(list (second %2) (first %2) %1) (second s) (reverse (first s))))
           (+seq *ws (+star (+seq op *ws sign *ws)) op *ws))))
 
-(defn *powlog [] (*multipleArgumentsRight 4 *powogSymbol))
+(defn *powlog [] (*multipleArgumentsRight 4 *powLogSymbol))
 (defn *divmul [] (*multipleArguments 5 *divMulSymbol))
 (defn *addsub [] (*multipleArguments 6 *addSubSymbol))
 (defn *and [] (*multipleArguments 7 *andSymbol))
