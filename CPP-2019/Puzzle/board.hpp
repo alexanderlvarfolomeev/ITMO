@@ -8,35 +8,33 @@
 #include <string>
 
 class board {
-    std::vector<std::vector<char>> state;
-    char height;
-    char width;
+    std::vector<std::vector<int>> state;
+    int height;
+    int width;
     unsigned int manhattan_result;
-    std::pair<char, char> space;
+    std::pair<int, int> space;
 
-    static char random(char);
-
-    static void generate_state(char, char,
-                               std::vector<std::vector<char>> &,
-                               std::pair<char, char> &);
+    static void generate_state(int, int,
+                               std::vector<std::vector<int>> &,
+                               std::pair<int, int> &);
 
     static std::string &n_times(std::string &, size_t, char);
 public:
-    std::vector<board> generate_neighbors();
+    std::vector<board> generate_neighbors() const;
 
     board();
 
-    explicit board(const std::vector<std::vector<char>> &);
+    explicit board(const std::vector<std::vector<int>> &);
 
-    board(char, char);
+    board(int, int);
+
+    explicit board(int);
 
     board(const board &);
 
-    const std::pair<char, char> get_space() const;
+    bool is_space(int, int) const;
 
-    bool is_space(char, char) const;
-
-    std::pair<char, char> size() const;
+    std::pair<int, int> size() const;
 
     unsigned int hamming() const;
 
@@ -58,7 +56,7 @@ public:
 
     board &operator=(const board &);
 
-    const std::vector<char> &operator[](int n);
+    const std::vector<int> &operator[](int n);
 
     std::string to_string() const;
 

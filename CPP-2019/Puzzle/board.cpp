@@ -5,13 +5,11 @@
 #include "board.hpp"
 
 #include <numeric>
-#include <ctime>
+#include <algorithm>
+#include <random>
+#include <cassert>
 
-char board::random(char n) {
-    return static_cast<char>(std::time(nullptr) % (n + 1));
-}
-
-std::vector<board> board::generate_neighbors() {
+std::vector<board> board::generate_neighbors() const {
     std::vector<board> neighbors;
     auto st = state;
     if (space.second != 0) {
@@ -38,10 +36,11 @@ std::vector<board> board::generate_neighbors() {
 
 board::board() = default;
 
-board::board(const std::vector<std::vector<char>> &state) :
-        state(state),
-        height(static_cast<char>(state.size())),
-        width(static_cast<char>(height == 0 ? 0 : state[0].size())) {
+board::board(const std::vector<std::vector<int>> &state) : state(state) {
+    height = state.size();
+    assert(height > 0);
+    width = state[0].size();
+    assert(width > 0);
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
             if (state[i][j] == height * width) {
@@ -52,27 +51,29 @@ board::board(const std::vector<std::vector<char>> &state) :
     manhattan_result = manhattan_precalc();
 }
 
-board::board(char height, char width) : height(height), width(width) {
+board::board(int height, int width) : height(height), width(width) {
+    assert(height > 0 && width > 0);
     generate_state(height, width, state, space);
     manhattan_result = manhattan_precalc();
 }
 
+board::board(int height):board(height, height){}
+
 board::board(const board &b) = default;
 
-void board::generate_state(char height, char width,
-                           std::vector<std::vector<char>> &state,
-                           std::pair<char, char> &space) {
+void board::generate_state(int height, int width,
+                           std::vector<std::vector<int>> &state,
+                           std::pair<int, int> &space) {
 
-    std::vector<char> permutation(static_cast<unsigned int>(height * width));
+    std::vector<int> permutation(static_cast<unsigned int>(height * width));
+    static std::random_device rd;
+    static std::mt19937 generator(rd());
     std::iota(permutation.begin(), permutation.end(), 1);
-    for (int i = permutation.size() - 1; i >= 0; --i) {
-        char j = random(static_cast<char>(i));
-        std::swap(permutation[i], permutation[j]);
-    }
+    std::shuffle(permutation.begin(), permutation.end(), generator);
+    state = {static_cast<size_t>(height), std::vector<int>(width, 0)};
     for (int i = 0; i < height; ++i) {
-        state.emplace_back();
         for (int j = 0; j < width; ++j) {
-            state[i].push_back(permutation[i * width + j]);
+            state[i][j] = permutation[i * width + j];
             if (state[i][j] == height * width) {
                 space = {i, j};
             }
@@ -80,15 +81,11 @@ void board::generate_state(char height, char width,
     }
 }
 
-const std::pair<char, char> board::get_space() const {
-    return space;
-}
-
-bool board::is_space(char i, char j) const {
+bool board::is_space(int i, int j) const {
     return space == std::make_pair(i, j);
 }
 
-std::pair<char, char> board::size() const {
+std::pair<int, int> board::size() const {
     return {height, width};
 }
 
@@ -150,7 +147,7 @@ bool board::is_solvable() const {
     for (char i = static_cast<char>(height - 1); i >= 0; --i) {
         for (char j = static_cast<char>(width - 1); j >= 0; --j) {
             if (is_space(static_cast<unsigned char>(i), static_cast<unsigned char>(j))) {
-                result += i + height*width + 1 + i*width;
+                result += i + height * width + 1 + i * width;
                 continue;
             }
             result += count[state[i][j] - 1];
@@ -166,13 +163,14 @@ bool operator==(const board &board1, const board &board2) {
     if (board1.width != board2.width || board1.height != board2.height) {
         return false;
     }
-    bool result = true;
     for (auto i = 0; i < board1.height; ++i) {
         for (auto j = 0; j < board1.width; ++j) {
-            result &= board1.state[i][j] == board2.state[i][j];
+            if (board1.state[i][j] != board2.state[i][j]) {
+                return false;
+            }
         }
     }
-    return result;
+    return true;
 }
 
 bool operator!=(const board &board1, const board &board2) {
@@ -205,7 +203,7 @@ bool operator>(const board &board1, const board &board2) {
 
 board &board::operator=(const board &other) = default;
 
-const std::vector<char> &board::operator[](int n) {
+const std::vector<int> &board::operator[](int n) {
     return state[n];
 }
 

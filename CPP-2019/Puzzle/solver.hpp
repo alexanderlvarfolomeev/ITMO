@@ -4,48 +4,15 @@
 
 #pragma onceonce
 
-#include <iostream> //TODO remove it
 #include <list>
-#include <map>
+#include <set>
 #include "board.hpp"
-
-
-class path_iterator : public std::iterator<std::input_iterator_tag, const board> {
-
-    friend class solver;
-
-    std::list<board, std::allocator<board>>::const_iterator ptr;
-
-
-public:
-    explicit path_iterator(std::list<board, std::allocator<board>>::const_iterator iterator) : ptr(iterator) {}
-
-    bool operator==(path_iterator const &it) const {
-        return ptr == it.ptr;
-    }
-
-    bool operator!=(path_iterator const &it) const {
-        return ptr != it.ptr;
-    }
-
-    path_iterator::reference operator*() const {
-        return *ptr;
-    }
-
-    std::list<board, std::allocator<board>>::const_iterator operator->() const {
-        return ptr;
-    }
-
-    path_iterator operator++() {
-        ptr++;
-        return *this;
-    }
-};
 
 class solver {
     bool solvable;
-
 public:
+    using board_iterator = std::set<board>::const_iterator;
+
     std::list<board> path;
 
     size_t moves();
@@ -54,8 +21,8 @@ public:
 
     solver(solver &);
 
-    path_iterator begin() const;
+    std::list<board, std::allocator<board>>::const_iterator begin() const;
 
-    path_iterator end() const;
+    std::list<board, std::allocator<board>>::const_iterator end() const;
 
 };

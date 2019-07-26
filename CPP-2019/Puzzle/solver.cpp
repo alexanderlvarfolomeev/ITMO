@@ -3,11 +3,19 @@
 //
 
 #include "solver.hpp"
-#include <set>
+#include <queue>
+#include <map>
 
 size_t solver::moves() {
     return !path.empty() ? path.size() - 1 : 0;
 }
+
+struct Compare {
+    bool
+    operator()(const solver::board_iterator &board_iterator1, const solver::board_iterator &board_iterator2) const {
+        return *board_iterator1 > *board_iterator2;
+    }
+};
 
 solver::solver(const board &b) {
     solvable = b.is_solvable();
@@ -15,54 +23,42 @@ solver::solver(const board &b) {
         path = {};
         return;
     }
-    std::set<board> closed;
-    std::set<board> opened;
-    opened.insert(b);
-
-    std::map<const board, const board> came_from;
-    std::map<const board, unsigned int> g_score;
-    g_score.insert({b, 0});
+    std::vector<std::set<board>> all_boards;
+    auto size_b = b.size();
+    all_boards.resize(static_cast<size_t>((size_b.first + size_b.second) * size_b.first * size_b.second));
+    all_boards[b.manhattan()].insert(b);
+    std::priority_queue<board_iterator, std::vector<board_iterator>, Compare> opened;
+    opened.push(all_boards[b.manhattan()].begin());
+    std::map<board_iterator, board_iterator, Compare> came_from;
     while (!opened.empty()) {
-        //std::cout << '(' << closed.size() << ' ' << opened.size() /*<< ' ' << came_from.size()*/ << ") ";
-        auto current = *opened.begin();
-        if (current.is_goal()) {
-            path.push_front(current);
+        auto current = opened.top();
+        opened.pop();
+        if (current->is_goal()) {
+            path.push_front(*current);
             auto cur = came_from.find(current);
             while (cur != came_from.end()) {
-                path.push_front(cur->second);
+                path.push_front(*cur->second);
                 cur = came_from.find(cur->second);
             }
-            std::cout << '\n' << opened.size() + closed.size() << '\n';
             return;
         }
-        closed.insert(current);
-        opened.erase(current);
-        for (auto &neighbor : current.generate_neighbors()) {
-            if (closed.find(neighbor) != closed.end()) {
+        for (auto &neighbor : current->generate_neighbors()) {
+            if (all_boards[neighbor.manhattan()].find(neighbor) != all_boards[neighbor.manhattan()].end()) {
                 continue;
             }
-            unsigned score = g_score.find(current)->second + 1;
-            std::cout << current.manhattan() << ' ';
-            if (opened.find(neighbor) == opened.end() && closed.find(neighbor) == closed.end()) {
-                opened.insert(neighbor);
-                came_from.insert({neighbor, current});
-                g_score.insert({neighbor, score});
-            } else {
-                auto neighbor_score = g_score.find(neighbor);
-                neighbor_score->second = std::min(g_score.find(current)->second + 1, neighbor_score->second);
-            }
+            auto iter = all_boards[neighbor.manhattan()].insert(std::move(neighbor));
+            came_from.insert({iter.first, current});
+            opened.push(iter.first);
         }
-        g_score.erase(current);
-        //closed.erase(current);
     }
 }
 
 solver::solver(solver &other) = default;
 
-path_iterator solver::begin() const {
-    return path_iterator(path.cbegin());
+std::list<board, std::allocator<board>>::const_iterator solver::begin() const {
+    return path.cbegin();
 }
 
-path_iterator solver::end() const {
-    return path_iterator(path.cend());
+std::list<board, std::allocator<board>>::const_iterator solver::end() const {
+    return path.cend();
 }
