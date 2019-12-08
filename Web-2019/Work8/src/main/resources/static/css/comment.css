@@ -1,0 +1,25 @@
+/* comment */
+main .comment {
+    margin-bottom: 0.25rem;
+    border: 1px solid var(--caption-color);
+    border-radius: var(--border-radius);
+    padding: 0.1rem;
+}
+
+main .comment .header {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.2em;
+}
+
+main .comment-creation-form {
+    margin-bottom: 0.5em;
+}
+
+.comment-creation-form .name {
+    margin-bottom: 0.1rem;
+}
+.comment-creation-form .field textarea {
+    min-height: 3rem;
+    min-width: 40rem;
+}

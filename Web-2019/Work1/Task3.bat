@@ -1,0 +1,7 @@
+SetLocal EnableDelayedExpansion
+SET res=0
+FOR /L %%Q IN (1,1,100) DO (
+	SET /a res = %%Q * %%Q
+	curl "http://1d3p.wp.codeforces.com/new" -H "Connection: keep-alive" -H "Pragma: no-cache" -H "Cache-Control: no-cache" -H "Origin: http://1d3p.wp.codeforces.com" -H "Upgrade-Insecure-Requests: 1" -H "Content-Type: application/x-www-form-urlencoded" -H "User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36" -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3" -H "Referer: http://1d3p.wp.codeforces.com/" -H "Accept-Encoding: gzip, deflate" -H "Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,bg;q=0.6" -H "Cookie: __utmc=71512449; __utmz=71512449.1564168474.1.1.utmcsr=(direct)^|utmccn=(direct)^|utmcmd=(none); _gcl_au=1.1.182294822.1568314253; _ga=GA1.2.1592515229.1564168474; evercookie_etag=nq374hmzodss5dh64f; evercookie_cache=nq374hmzodss5dh64f; evercookie_png=nq374hmzodss5dh64f; 70a7c28f3de=nq374hmzodss5dh64f; _gid=GA1.2.496816969.1568797039; __utma=71512449.1592515229.1564168474.1568797008.1568819431.7; __utmb=71512449.2.10.1568819431; JSESSIONID=4D7D5019C0E4441880650664A9C28493" --data "_af=34be50b38beccce4^&proof=!res!^&amount=%%Q^&submit=Submit" --insecure
+)
+PAUSE
