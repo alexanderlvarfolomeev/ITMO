@@ -11,7 +11,7 @@ if %min% equ 60 (
 	if [%hour:~1%]==[] set hour=0%hour%
 	if [%hour%]==[24] set hour=00
 )
-echo 11284var| schtasks /create /tn:scriptrunner /v1 /z /sc once /tr "%cd%\subscript2.bat" /sd %date% /st %hour%:%min%
+echo 12345| schtasks /create /tn:scriptrunner /v1 /z /sc once /tr "%cd%\subscript2.bat" /sd %date% /st %hour%:%min%
 
 for /l %%g in (0,1,60) do (
 for /f "tokens=1,2" %%a in ('wmic process get name^,processId ^| find /i "xcopy.exe"') do (
